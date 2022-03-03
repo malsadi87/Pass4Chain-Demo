@@ -1,0 +1,14 @@
+{
+    "compilerOptions": {
+        "noImplicitAny": true,
+        "target": "ESNext",
+        "module": "commonjs",
+        "resolveJsonModule": true,
+        "esModuleInterop": true,
+        "sourceMap": false,
+        "removeComments": true
+    },
+    "compileOnSave": false,
+    "include": ["./src"],
+    "exclude": ["node_modules", "**/__tests__/*"]
+}

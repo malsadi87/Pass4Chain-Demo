@@ -1,0 +1,3 @@
+First and primarily Add rest API with rethink (or another database) which works with the TP
+Add a compose file at the outer level that works with everything
+Play and try to imporve on the TP

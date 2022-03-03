@@ -1,0 +1,167 @@
+version: "2.1"
+
+services:
+  proto-runner:
+    build:
+      context: .
+      dockerfile: ./proto_runner/Dockerfile
+    image: proto-runner
+    container_name: proto-runner
+    volumes:
+      - ".:/supply-chain"
+    command: |
+      bash -c "
+        proto_gen
+      "
+  pass-client:
+    build: ./client/
+    image: sawtooth-pass-client
+    container_name: pass-client
+    volumes:
+      - ./client/:/usr/local/apache2/htdocs/
+    expose:
+      - 80
+    ports:
+      - '8000:80'
+    depends_on:
+    - rest-api
+    #- tunachain-shell
+
+  ledger-sync:
+    build:
+      context: .
+      dockerfile: ./ledger_sync/Dockerfile
+    image: ledger-sync
+    container_name: ledger-sync
+    volumes:
+      - ".:/supply_chain"
+    depends_on:
+      - validator
+      - rest-api
+    command: |
+      bash -c "
+        sleep 1 && \
+        ledger_sync
+      "
+
+#  web-api:
+#    build:
+#      context: .
+#      dockerfile: ./web_api/Dockerfile
+#    image: web-api
+#    container_name: web-api
+#    volumes:
+#      - ".:/supply_chain"
+#    expose:
+#      - 9090
+#    ports:
+#      - "9090:9090"
+#    depends_on:
+#      - validator
+#      - rest-api
+#      - ledger-sync
+#    command: |
+#      bash -c "
+#        sleep 2 && \
+#        web_api
+#      "
+
+  supply-tp:
+    build:
+      context: .
+      dockerfile: ./processors/Dockerfile
+    image: supply-tp
+    container_name: supply-tp
+    volumes:
+      - ".:/supply-chain"
+    depends_on:
+      - validator
+      - rest-api
+    entrypoint: |
+      bash -c "
+        sleep 1 && \
+        supply_processor -C tcp://validator:4004
+      "
+
+  settings-tp:
+    image: hyperledger/sawtooth-settings-tp
+    container_name: sawtooth-settings-tp
+    depends_on:
+      - validator
+    entrypoint: settings-tp -C tcp://validator:4004
+
+  validator:
+    image: hyperledger/sawtooth-validator
+    container_name: supply-validator
+    expose:
+      - 4004
+      - 8800
+    ports:
+      - "4004:4004"
+    depends_on:
+      - proto-runner
+    entrypoint: "bash -c \"\
+      if [ ! -f /etc/sawtooth/keys/validator.priv ]; then
+        sawadm keygen && \
+        sawtooth keygen my_key && \
+        sawset genesis -k /root/.sawtooth/keys/my_key.priv && \
+        sawset proposal create \
+          -k /root/.sawtooth/keys/my_key.priv \
+          sawtooth.consensus.algorithm.name=Devmode \
+          sawtooth.consensus.algorithm.version=0.1 \
+          -o config.batch && \
+        sawadm genesis config-genesis.batch config.batch; \
+      fi; \
+        sawtooth-validator \
+          --endpoint tcp://validator:8800 \
+          --bind component:tcp://eth0:4004 \
+          --bind network:tcp://eth0:8800 \
+          --bind consensus:tcp://eth0:5050 \
+        \""
+
+  devmode-engine:
+    image: hyperledger/sawtooth-devmode-engine-rust
+    container_name: sawtooth-devmode-engine-rust-default
+    depends_on:
+      - validator
+    entrypoint: devmode-engine-rust -C tcp://validator:5050
+
+  rest-api:
+    image: hyperledger/sawtooth-rest-api
+    container_name: rest-api
+    expose:
+      - 8008
+    ports:
+      - '8008:8008'
+    depends_on:
+      - validator
+    entrypoint: |
+      sawtooth-rest-api -vv
+        --connect tcp://validator:4004
+        --bind rest-api:8008
+
+  rethink:
+    image: rethinkdb
+    container_name: supply-rethink
+    expose:
+      - 8080
+      - 28015
+    ports:
+      - '8023:8080'
+      - '28020:28015'
+#     environment:
+#       - 'http_proxy=${http_proxy}'
+#       - 'https_proxy=${https_proxy}'
+#       - 'no_proxy=rest-api,server,eth0,validator,${no_proxy}'
+
+#   shell:
+#     image: hyperledger/sawtooth-shell
+#     container_name: sawtooth-shell
+#     depends_on:
+#       - rest-api
+#     volumes:
+#       - ".:/supply-chain"
+#     entrypoint: "bash -c \"\
+#       sawtooth keygen --force && \
+#       tail -f /dev/null \
+#       \""

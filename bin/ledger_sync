@@ -1,0 +1,13 @@
+#!/usr/bin/env python3
+import os
+import sys
+
+TOP_DIR = os.path.dirname(os.path.dirname(os.path.realpath(__file__)))
+
+sys.path.insert(0, TOP_DIR)
+sys.path.insert(0, os.path.join(TOP_DIR, 'protobuf'))
+
+from ledger_sync.main import main
+
+if __name__ == '__main__':
+    main()
