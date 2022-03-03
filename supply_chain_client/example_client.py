@@ -1,10 +1,10 @@
 from sawtooth_signing import Signer
 
-from SupplyChainClient import SupplyChainClient
+from supply_chain_client.SupplyChainClient import SupplyChainClient
 
-from crypto import get_new_signer
-from models.agent import AgentItem
-from models.fish_pallet import fish_pallet_type, create_fish_pallet, create_temperature
+from supply_chain_client.crypto import get_new_signer
+from supply_chain_client.models.agent import AgentItem
+from supply_chain_client.models.fish_pallet import fish_pallet_type, create_fish_pallet, create_temperature
 
 
 class ExampleClient(SupplyChainClient):
